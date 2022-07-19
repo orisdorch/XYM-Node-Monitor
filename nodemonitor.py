@@ -6,10 +6,10 @@ PURPOSE
 Scheduled script to monitor a blockchain node for outages or stalled height, send email alert on error.
 
 DESCRIPTION
-Checks node block height -- if no response from node OR no change in height since last check, send alert.
+Checks node block height -- if no response from node OR no change in height since last check, sends an emailed alert.
 
 SETUP
-Provide relevant variables in the User Defined Variables section
+Provide relevant user defined variables in the .env file (examples provided)
 Run on a recurring schedule (i.e. every 10 min)
 
 Distributed under  Mozilla Public Licence 2.0
@@ -20,8 +20,9 @@ from email.message import EmailMessage
 import os
 from dotenv import load_dotenv
 
-### Import User Defined Variables from .env###
+### Import User Defined Variables from .env file###
 load_dotenv()
+# Note: the above line could be removed and the below variables could be provided directly within the script is an .env file is not desired. 
 nodeAPIURL = os.getenv('nodeAPIURL')
 endPoint = os.getenv('endPoint')
 dataKey = os.getenv('dataKey')
