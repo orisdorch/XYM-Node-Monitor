@@ -6,10 +6,10 @@ PURPOSE
 Scheduled script to monitor a blockchain node for outages or stalled height, send email alert on error.
 
 DESCRIPTION
-Checks node block height -- if no response from node OR no change in height since last check, sends an emailed alert.
+Checks node block height -- if no response from node OR no change in height since last check, send alert.
 
 SETUP
-Provide relevant user defined variables in the .env file (examples provided)
+Provide relevant variables in the User Defined Variables section
 Run on a recurring schedule (i.e. every 10 min)
 
 Distributed under  Mozilla Public Licence 2.0
@@ -18,28 +18,11 @@ import requests
 import smtplib
 from email.message import EmailMessage
 import os
-from dotenv import load_dotenv
+from dotenv import dotenv_values
 
-### Import User Defined Variables from .env file###
-load_dotenv()
-# Note: the above line could be removed and the below variables could be provided directly within the script is an .env file is not desired. 
-nodeAPIURL = os.getenv('nodeAPIURL')
-endPoint = os.getenv('endPoint')
-dataKey = os.getenv('dataKey')
-blockFilePath = os.getenv('blockFilePath')
-errorFilePath = os.getenv('errorFilePath')
-senderAddress = os.getenv('senderAddress')
-senderPass = os.getenv('senderPass')
-smtpServer = os.getenv('smtpServer')
-smtpPort = os.getenv('smtpPort')
-recipientAddress = os.getenv('recipientAddress')
-realertEvery =  os.getenv('realertEvery')
-nodeChain = os.getenv('nodeChain')
 
 ### Global/Static Variables - do not edit ###
 headers={'content-type':'application/json', 'Accept':'application/json'}  #parameters used in API calls
-lastBlock = "0"   #The last BLock Height retrieved from your node -- stored in blockFilePath
-errorCount = "0"   #Counts #  runs with errors since last success -- stored in errorFilePath
 
 ### API Query Functions ###
 # For queries without responses (full contents are returned with a single query) #
@@ -58,7 +41,7 @@ def APICallNotPaged(APINodeURL,endPoint,dataKey):
 ### Error Management ### - with error counter and email notifications
 def errorHandling(subject,message):   #Takes the email alert contents, checks error count to see if alert should be supressed, sends alert if warranted.
     newErrorCount = str(int(errorCount) + 1)
-    if newErrorCount == "1" or (int(newErrorCount)/realertEvery).is_integer():  #For notifications -- check if lase run was successful, if no: check if due for a re-alert
+    if newErrorCount == "1" or (int(newErrorCount)/int(realertEvery)).is_integer():  #For notifications -- check if lase run was successful, if no: check if due for a re-alert
         print ("Sending alert - error number " + newErrorCount)
         sendEmailAlert(subject,message)
     else: 
@@ -130,5 +113,38 @@ def sendEmailAlert(subject,message): #Plain text messaging only
 
     
 ### Begin Script Execution ###
-lastRunFileCheck()   #Check for output files from last run; create them if missing.
-checkNodeStatus(nodeAPIURL,endPoint,dataKey)   #Get node block height / notify on error
+# Load .env files and cycle through them
+env_dir = os.path.dirname(os.path.realpath(__file__))
+
+
+# Find all .env files in the directory
+env_files = [f for f in os.listdir(env_dir) if f.endswith('.env')]
+print("found the following environment files: " + str(env_files))
+
+# Loop through each .env file and feed it to lastRunFileCheck and checkNodeStatus - this isn't a defined function in order to simplify setting global variables.
+for env_file in env_files:
+    env_path = os.path.join(env_dir, env_file)
+    print("Loading environment file " + env_path)
+    lastBlock = "0"  # The last BLock Height retrieved from your node -- stored in blockFilePath
+    errorCount = "0"  # Counts #  runs with errors since last success -- stored in errorFilePath
+
+    ### Load User Defined Variables from .env file ###
+    environment = dotenv_values(env_path)
+    nodeAPIURL = environment['nodeAPIURL']
+    endPoint = environment['endPoint']
+    dataKey = environment['dataKey']
+    blockFilePath = environment['blockFilePath']
+    errorFilePath = environment['errorFilePath']
+    senderAddress = environment['senderAddress']
+    senderPass = environment['senderPass']
+    smtpServer = environment['smtpServer']
+    smtpPort = environment['smtpPort']
+    recipientAddress = environment['recipientAddress']
+    realertEvery = environment['realertEvery']
+    nodeChain = environment['nodeChain']
+
+    ### Check for output files from last run; create them if missing.
+    lastRunFileCheck()
+
+    ### Get node block height / notify on error
+    checkNodeStatus(nodeAPIURL,endPoint,dataKey)
